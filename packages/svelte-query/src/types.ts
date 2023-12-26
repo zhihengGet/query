@@ -28,7 +28,7 @@ export type CreateBaseQueryOptions<
 export type CreateBaseQueryResult<
   TData = unknown,
   TError = DefaultError,
-> = Readable<QueryObserverResult<TData, TError>>
+> = QueryObserverResult<TData, TError>
 
 /** Options for createQuery */
 export type CreateQueryOptions<
@@ -65,7 +65,7 @@ export type CreateInfiniteQueryOptions<
 export type CreateInfiniteQueryResult<
   TData = unknown,
   TError = DefaultError,
-> = Readable<InfiniteQueryObserverResult<TData, TError>>
+> = InfiniteQueryObserverResult<TData, TError>
 
 /** Options for createBaseQuery with initialData */
 export type DefinedCreateBaseQueryResult<
@@ -85,11 +85,9 @@ export type CreateMutationOptions<
   TError = DefaultError,
   TVariables = void,
   TContext = unknown,
-> = StoreOrVal<
-  Omit<
-    MutationObserverOptions<TData, TError, TVariables, TContext>,
-    '_defaulted' | 'variables'
-  >
+> = Omit<
+  MutationObserverOptions<TData, TError, TVariables, TContext>,
+  '_defaulted' | 'variables'
 >
 
 export type CreateMutateFunction<
@@ -126,6 +124,6 @@ export type CreateMutationResult<
   TError = DefaultError,
   TVariables = unknown,
   TContext = unknown,
-> = Readable<CreateBaseMutationResult<TData, TError, TVariables, TContext>>
+> = CreateBaseMutationResult<TData, TError, TVariables, TContext>
 
 type Override<A, B> = { [K in keyof A]: K extends keyof B ? B[K] : A[K] }

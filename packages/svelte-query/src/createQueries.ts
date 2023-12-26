@@ -2,9 +2,6 @@ import { QueriesObserver, notifyManager } from '@tanstack/query-core'
 import { derived, get, readable } from 'svelte/store'
 import { useIsRestoring } from './useIsRestoring'
 import { useQueryClient } from './useQueryClient'
-import { isSvelteStore } from './utils'
-import type { Readable } from 'svelte/store'
-import type { StoreOrVal } from './types'
 import type {
   DefaultError,
   QueriesObserverOptions,
@@ -16,6 +13,7 @@ import type {
   QueryObserverResult,
   ThrowOnError,
 } from '@tanstack/query-core'
+import { createMemo } from './utils.svelte'
 
 // This defines the `CreateQueryOptions` that are accepted in `QueriesOptions` & `GetOptions`.
 // `placeholderData` function does not have a parameter
@@ -204,63 +202,63 @@ export function createQueries<
     queries,
     ...options
   }: {
-    queries: StoreOrVal<[...QueriesOptions<T>]>
+    queries: [...QueriesOptions<T>]
     combine?: (result: QueriesResults<T>) => TCombinedResult
   },
   queryClient?: QueryClient,
-): Readable<TCombinedResult> {
+): TCombinedResult {
   const client = useQueryClient(queryClient)
-  const isRestoring = useIsRestoring()
+  let isRestoring = useIsRestoring()
 
-  const queriesStore = isSvelteStore(queries) ? queries : readable(queries)
+  const queriesStore = $derived(queries)
 
-  const defaultedQueriesStore = derived(
-    [queriesStore, isRestoring],
-    ([$queries, $isRestoring]) => {
-      return $queries.map((opts) => {
-        const defaultedOptions = client.defaultQueryOptions(opts)
-        // Make sure the results are already in fetching state before subscribing or updating options
-        defaultedOptions._optimisticResults = $isRestoring
-          ? 'isRestoring'
-          : 'optimistic'
-        return defaultedOptions
-      })
-    },
+  const defaultedQueriesStore = createMemo(() => {
+    return queries.map((opts) => {
+      const defaultedOptions = client.defaultQueryOptions(opts)
+      // Make sure the results are already in fetching state before subscribing or updating options
+      defaultedOptions._optimisticResults = isRestoring
+        ? 'isRestoring'
+        : 'optimistic'
+      return defaultedOptions
+    })
+  })
+  const observer = $derived(
+    new QueriesObserver<TCombinedResult>(
+      client,
+      defaultedQueriesStore,
+      options as QueriesObserverOptions<TCombinedResult>,
+    ),
   )
-  const observer = new QueriesObserver<TCombinedResult>(
-    client,
-    get(defaultedQueriesStore),
-    options as QueriesObserverOptions<TCombinedResult>,
-  )
-
-  defaultedQueriesStore.subscribe(($defaultedQueries) => {
+  $effect(() => {
     // Do not notify on updates because of changes in the options because
     // these changes should already be reflected in the optimistic result.
     observer.setQueries(
-      $defaultedQueries,
+      defaultedQueriesStore,
       options as QueriesObserverOptions<TCombinedResult>,
       { listeners: false },
     )
   })
 
-  const result = derived([isRestoring], ([$isRestoring], set) => {
-    const unsubscribe = $isRestoring
+  let result = $state()
+
+  $effect(() => {
+    const unsubscribe = isRestoring
       ? () => undefined
-      : observer.subscribe(notifyManager.batchCalls(set))
+      : observer.subscribe(
+          notifyManager.batchCalls((v) => {
+            result = v
+          }),
+        )
 
     return () => unsubscribe()
   })
 
-  const { subscribe } = derived(
-    [result, defaultedQueriesStore],
-    // @ts-ignore svelte-check thinks this is unused
-    ([$result, $defaultedQueriesStore]) => {
-      const [rawResult, combineResult, trackResult] =
-        observer.getOptimisticResult($defaultedQueriesStore)
-      $result = rawResult
-      return combineResult(trackResult())
-    },
-  )
+  const data = $derived(() => {
+    const [rawResult, combineResult, trackResult] =
+      observer.getOptimisticResult(defaultedQueriesStore)
+    result = rawResult
+    return combineResult(trackResult())
+  })
 
-  return { subscribe }
+  return data()
 }

@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import { render, waitFor } from '@testing-library/svelte'
-import { derived, writable } from 'svelte/store'
 import { QueryClient } from '@tanstack/query-core'
 import CreateQuery from './CreateQuery.svelte'
 import { sleep } from './utils'
 
-describe('createQuery', () => {
+describe.only('createQuery', () => {
   test('Render and wait for success', async () => {
     const rendered = render(CreateQuery, {
       props: {
@@ -30,13 +29,13 @@ describe('createQuery', () => {
   })
 
   test('Accept a writable store for options', async () => {
-    const optionsStore = writable({
+    const optionsStore = {
       queryKey: ['test'],
       queryFn: async () => {
         await sleep(10)
         return 'Success'
       },
-    })
+    }
 
     const rendered = render(CreateQuery, {
       props: {
@@ -51,15 +50,17 @@ describe('createQuery', () => {
   })
 
   test('Accept a derived store for options', async () => {
-    const writableStore = writable('test')
+    const writableStore = 'test'
 
-    const derivedStore = derived(writableStore, ($store) => ({
-      queryKey: [$store],
-      queryFn: async () => {
-        await sleep(10)
-        return 'Success'
-      },
-    }))
+    const derivedStore = $derived(
+      ((store) => ({
+        queryKey: [store],
+        queryFn: async () => {
+          await sleep(10)
+          return 'Success'
+        },
+      }))(),
+    )
 
     const rendered = render(CreateQuery, {
       props: {

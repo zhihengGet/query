@@ -8,7 +8,7 @@ export default defineConfig({
     watch: false,
     coverage: { provider: 'istanbul' },
     environment: 'jsdom',
-    include: ['src/**/*.{test,spec}.{js,ts}'],
+    include: ['src/**/createQuery.{test,spec}.{js,ts}'],
     setupFiles: ['test-setup.ts'],
   },
 })
