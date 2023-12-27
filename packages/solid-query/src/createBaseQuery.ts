@@ -174,7 +174,7 @@ export function createBaseQuery<
             reconcileOptions === undefined ? false : reconcileOptions,
           )
         })
-        // If the query has data we dont suspend but instead mutate the resource
+        // If the query has data we don't suspend but instead mutate the resource
         // This could happen when placeholderData/initialData is defined
         if (
           queryResource()?.data &&

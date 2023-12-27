@@ -13,7 +13,7 @@ export type {
   UndefinedInitialDataOptions,
 } from './queryOptions'
 export { queryOptions } from './queryOptions'
-export { createQueries } from './createQueries'
+export { createQueries } from './createQueries.svelte'
 export { createInfiniteQuery } from './createInfiniteQuery'
 export { infiniteQueryOptions } from './infiniteQueryOptions'
 export { createMutation } from './createMutation.svelte'

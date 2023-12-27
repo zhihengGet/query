@@ -1,5 +1,5 @@
 {
-  "name": "svelte-query-z",
+  "name": "@tanstack/svelte-query",
   "version": "5.14.2-beta.0",
   "private": false,
   "description": "Primitives for managing, caching and syncing asynchronous and remote data in Svelte",
@@ -19,11 +19,12 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./src/index.ts"
     }
   },
   "files": [
     "dist",
+    "src",
     "!dist/__tests__",
     "!src/__tests__"
   ],
@@ -38,7 +39,8 @@
     "package": "svelte-package --input ./src && publint"
   },
   "dependencies": {
-    "@tanstack/query-core": "workspace:*"
+    "@tanstack/query-core": "workspace:*",
+    "solid-js": "^1.8.7"
   },
   "devDependencies": {
     "@sveltejs/package": "^2.2.5",

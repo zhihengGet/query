@@ -31,10 +31,6 @@ export function createBaseQuery<
   const isRestoring = useIsRestoring()
   const optionsStore = $derived(options)
 
-  $effect(() => {
-    debugger
-    console.log(optionsStore)
-  })
   /** Creates a store that has the default options applied */
   function op() {
     const defaultedOptions = client.defaultQueryOptions(optionsStore)
