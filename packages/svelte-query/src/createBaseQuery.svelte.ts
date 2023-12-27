@@ -28,10 +28,13 @@ export function createBaseQuery<
 ): CreateBaseQueryResult<TData, TError> {
   /** Load query client */
   const client = useQueryClient(queryClient)
-  let isRestoring = useIsRestoring()
-  /** Converts options to a svelte store if not already a store object */
-  const optionsStore = options
+  const isRestoring = useIsRestoring()
+  const optionsStore = $derived(options)
 
+  $effect(() => {
+    debugger
+    console.log(optionsStore)
+  })
   /** Creates a store that has the default options applied */
   function op() {
     const defaultedOptions = client.defaultQueryOptions(optionsStore)
@@ -50,21 +53,22 @@ export function createBaseQuery<
   )
   // Do not notify on updates because of changes in the options because
   // these changes should already be reflected in the optimistic result
-  $effect(() => {
+  $effect.pre(() => {
     observer.setOptions(defaultedOptionsStore, { listeners: false })
   })
 
-  let result = $state<QueryObserverResult<TData, TError>>()
-  $effect(() => {
+  let result = $state<QueryObserverResult<TData, TError>>(
+    observer.getOptimisticResult(defaultedOptionsStore),
+  )
+  $effect.pre(() => {
     let un = () => undefined
 
     if (!isRestoring) {
       {
         un = observer.subscribe((r) => {
           notifyManager.batchCalls(() => {
-            isRestoring = true
+            result = r
           })()
-          result = r
         })
       }
     }
@@ -75,14 +79,25 @@ export function createBaseQuery<
 
   /** Subscribe to changes in result and defaultedOptionsStore */
 
-  const opt = $derived(
-    (() => {
-      result = observer.getOptimisticResult(defaultedOptionsStore)
-      return !defaultedOptionsStore.notifyOnChangeProps
-        ? observer.trackResult(result)
-        : result
-    })(),
-  )
-  console.log('hi')
-  return () => opt
+  const final_ = $state({ value: {} })
+  const final_res = $state({})
+
+  $effect.pre(() => {
+    result = observer.getOptimisticResult(defaultedOptionsStore)
+  })
+  $effect.pre(() => {
+    const v = !defaultedOptionsStore.notifyOnChangeProps
+      ? observer.trackResult(result)
+      : result
+    final_.value = v //option 1
+    Object.assign(final_res, v) // option 2
+    console.log('result', result, defaultedOptionsStore)
+  })
+  //@ts-expect-error
+  return new Proxy(final_, {
+    get(target, p) {
+      //@ts-expect-error
+      return target.value[p]
+    },
+  })
 }

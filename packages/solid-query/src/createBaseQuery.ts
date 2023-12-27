@@ -18,7 +18,11 @@ import { createStore, reconcile, unwrap } from 'solid-js/store'
 import { useQueryClient } from './QueryClientProvider'
 import { shouldThrowError } from './utils'
 import { useIsRestoring } from './isRestoring'
-import type { CreateBaseQueryOptions } from './types'
+import type {
+  CreateBaseQueryOptions,
+  CreateBaseQueryResult,
+  CreateQueryResult,
+} from './types'
 import type { Accessor } from 'solid-js'
 import type { QueryClient } from './QueryClient'
 import type {
@@ -102,7 +106,7 @@ export function createBaseQuery<
   >,
   Observer: typeof QueryObserver,
   queryClient?: Accessor<QueryClient>,
-) {
+): CreateBaseQueryResult<TData, TError> {
   type ResourceData =
     | HydrateableQueryState<TData, TError>
     | QueryObserverResult<TData, TError>

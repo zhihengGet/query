@@ -7,6 +7,7 @@ import type {
   CreateMutationResult,
 } from './types'
 import type { DefaultError, QueryClient } from '@tanstack/query-core'
+import { onDestroy } from 'svelte'
 
 export function createMutation<
   TData = unknown,
@@ -19,39 +20,40 @@ export function createMutation<
 ): CreateMutationResult<TData, TError, TVariables, TContext> {
   const client = useQueryClient(queryClient)
 
-  const optionsStore = $derived(options)
-
   const observer = $derived(
-    new MutationObserver<TData, TError, TVariables, TContext>(
-      client,
-      optionsStore,
-    ),
+    new MutationObserver<TData, TError, TVariables, TContext>(client, options),
   )
-  let mutate: CreateMutateFunction<TData, TError, TVariables, TContext> =
-    $state()
+  const mutate = $state<
+    CreateMutateFunction<TData, TError, TVariables, TContext>
+  >((variables, mutateOptions) => {
+    observer.mutate(variables, mutateOptions).catch(noop)
+  })
 
-  $effect(() => {
-    mutate = (variables, mutateOptions) => {
-      observer.mutate(variables, mutateOptions).catch(noop)
-    }
+  $effect.pre(() => {
     observer.setOptions(options)
   })
 
   let result = observer.getCurrentResult()
-  $effect(() =>
-    observer.subscribe((val) => {
-      notifyManager.batchCalls(() => {
-        result = val
-      })()
-    }),
-  )
 
-  const data = $derived({
+  const un = observer.subscribe((val) => {
+    notifyManager.batchCalls(() => {
+      result = val
+    })()
+  })
+  onDestroy(un)
+
+  const data = $state({
     ...result,
     mutate,
     mutateAsync: result.mutate,
   })
-
+  $effect(() => {
+    Object.assign(data, {
+      ...result,
+      mutate,
+      mutateAsync: result.mutate,
+    })
+  })
   return data
 }
 
