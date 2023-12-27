@@ -61,11 +61,11 @@ export function createBaseQuery<
 
     if (!isRestoring) {
       {
-        un = observer.subscribe((r) => {
-          notifyManager.batchCalls(() => {
-            result = r
-          })()
-        })
+        un = observer.subscribe(
+          notifyManager.batchCalls((v) => {
+            result = v
+          }),
+        )
       }
     }
 
