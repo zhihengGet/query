@@ -92,6 +92,10 @@ export function createBaseQuery<
   //@ts-expect-error
   return new Proxy(final_, {
     get(target, p) {
+      console.log('p', p)
+      if (p == 'value') {
+        return target.value
+      }
       //@ts-expect-error
       return target.value[p]
     },
