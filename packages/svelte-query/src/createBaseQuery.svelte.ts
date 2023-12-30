@@ -1,4 +1,8 @@
-import { notifyManager } from '@tanstack/query-core'
+import {
+  QueryCache,
+  notifyManager,
+  replaceEqualDeep,
+} from '@tanstack/query-core'
 import { useIsRestoring } from './useIsRestoring'
 import { useQueryClient } from './useQueryClient'
 import type {
@@ -8,6 +12,7 @@ import type {
   QueryObserverResult,
 } from '@tanstack/query-core'
 import type { CreateBaseQueryOptions, CreateBaseQueryResult } from './types'
+import { flushSync, unstate, untrack } from 'svelte'
 
 export function createBaseQuery<
   TQueryFnData,
@@ -29,16 +34,23 @@ export function createBaseQuery<
   /** Load query client */
   const client = useQueryClient(queryClient)
   const isRestoring = useIsRestoring()
-  const optionsStore = $derived(options)
+  const optionsStore = $derived(
+    typeof options !== 'function' ? () => options : options,
+  )
 
   /** Creates a store that has the default options applied */
   function op() {
-    const defaultedOptions = client.defaultQueryOptions(optionsStore)
+    const defaultedOptions = client.defaultQueryOptions(optionsStore())
     defaultedOptions._optimisticResults == isRestoring
       ? 'isRestoring'
       : 'optimistic'
+    defaultedOptions.structuralSharing = false
+
     return defaultedOptions
   }
+  $effect(() => {
+    console.log('default store oupted', optionsStore)
+  })
   const defaultedOptionsStore = $derived(op())
   /** Creates the observer */
   const observer = $derived(
@@ -47,52 +59,60 @@ export function createBaseQuery<
       defaultedOptionsStore,
     ),
   )
-  // Do not notify on updates because of changes in the options because
-  // these changes should already be reflected in the optimistic result
-  $effect.pre(() => {
-    observer.setOptions(defaultedOptionsStore, { listeners: false })
-  })
 
   let result = $state<QueryObserverResult<TData, TError>>(
     observer.getOptimisticResult(defaultedOptionsStore),
   )
-  $effect.pre(() => {
+  let shoudRender = $state([])
+  $effect(() => {
+    if (shoudRender)
+      untrack(() => {
+        Object.assign(
+          result,
+          observer.getOptimisticResult(unstate(defaultedOptionsStore)),
+        )
+      })
+  })
+
+  $effect(() => {
     let un = () => undefined
 
     if (!isRestoring) {
       {
-        un = observer.subscribe(
-          notifyManager.batchCalls((v) => {
-            result = v
-          }),
-        )
+        //@ts-expect-error
+        un = observer.subscribe((v) => {
+          shoudRender = [] // for rerender above statement
+        })
       }
     }
 
     observer.updateResult()
     return un
   })
+  $effect.pre(() => {
+    // Do not notify on updates because of changes in the options because
+    // these changes should already be reflected in the optimistic result
+    observer.setOptions(unstate(defaultedOptionsStore), { listeners: false })
+  })
 
   /** Subscribe to changes in result and defaultedOptionsStore */
 
   const final_ = $state({ value: {} })
-  const final_res = $state({})
+  // const final_res = $state({})
 
-  $effect.pre(() => {
-    result = observer.getOptimisticResult(defaultedOptionsStore)
-  })
-  $effect.pre(() => {
+  $effect(() => {
     const v = !defaultedOptionsStore.notifyOnChangeProps
       ? observer.trackResult(result)
       : result
-    final_.value = v //option 1
-    Object.assign(final_res, v) // option 2
-    console.log('result', result, defaultedOptionsStore)
+
+    final_.value = Object.assign(final_.value, v)
+
+    //  console.log('result', result, defaultedOptionsStore)
   })
   //@ts-expect-error
   return new Proxy(final_, {
     get(target, p) {
-      console.log('p', p)
+      //console.log('p', p)
       if (p == 'value') {
         return target.value
       }
