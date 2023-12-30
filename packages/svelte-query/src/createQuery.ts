@@ -8,6 +8,7 @@ import type {
   CreateQueryOptions,
   CreateQueryResult,
   DefinedCreateQueryResult,
+  FnOrVal,
 } from './types'
 import type {
   DefinedInitialDataOptions,
@@ -20,7 +21,9 @@ export function createQuery<
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
-  options: UndefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>,
+  options: FnOrVal<
+    UndefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>
+  >,
   queryClient?: QueryClient,
 ): CreateQueryResult<TData, TError>
 

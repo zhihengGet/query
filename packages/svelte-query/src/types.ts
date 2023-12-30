@@ -11,6 +11,7 @@ import type {
   QueryObserverResult,
 } from '@tanstack/query-core'
 
+export type FnOrVal<T> = (() => T) | T // can be a fn that returns reactive statement or $state or $derived deep states
 /** Options for createBaseQuery */
 export type CreateBaseQueryOptions<
   TQueryFnData = unknown,
@@ -18,7 +19,9 @@ export type CreateBaseQueryOptions<
   TData = TQueryFnData,
   TQueryData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
-> = QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>
+> = FnOrVal<
+  QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>
+>
 
 /** Result from createBaseQuery */
 export type CreateBaseQueryResult<

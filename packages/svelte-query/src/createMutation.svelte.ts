@@ -1,4 +1,5 @@
-import { derived, get, readable } from 'svelte/store'
+import { onDestroy } from 'svelte'
+
 import { MutationObserver, notifyManager } from '@tanstack/query-core'
 import { useQueryClient } from './useQueryClient'
 import type {
@@ -6,8 +7,8 @@ import type {
   CreateMutationOptions,
   CreateMutationResult,
 } from './types'
+
 import type { DefaultError, QueryClient } from '@tanstack/query-core'
-import { onDestroy } from 'svelte'
 
 export function createMutation<
   TData = unknown,
@@ -33,7 +34,7 @@ export function createMutation<
     observer.setOptions(options)
   })
 
-  let result = observer.getCurrentResult()
+  let result = $state(observer.getCurrentResult())
 
   const un = observer.subscribe((val) => {
     notifyManager.batchCalls(() => {
@@ -47,7 +48,7 @@ export function createMutation<
     mutate,
     mutateAsync: result.mutate,
   })
-  $effect(() => {
+  $effect.pre(() => {
     Object.assign(data, {
       ...result,
       mutate,

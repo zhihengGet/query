@@ -48,9 +48,9 @@ export function createBaseQuery<
 
     return defaultedOptions
   }
-  $effect(() => {
+  /*  $effect(() => {
     console.log('default store oupted', optionsStore)
-  })
+  }) */
   const defaultedOptionsStore = $derived(op())
   /** Creates the observer */
   const observer = $derived(
@@ -60,12 +60,14 @@ export function createBaseQuery<
     ),
   )
 
-  let result = $state<QueryObserverResult<TData, TError>>(
+  const result = $state<QueryObserverResult<TData, TError>>(
     observer.getOptimisticResult(defaultedOptionsStore),
   )
-  let shoudRender = $state([])
+  let render = $state([])
   $effect(() => {
-    if (shoudRender)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (render)
+      // force rerender
       untrack(() => {
         Object.assign(
           result,
@@ -81,7 +83,7 @@ export function createBaseQuery<
       {
         //@ts-expect-error
         un = observer.subscribe((v) => {
-          shoudRender = [] // for rerender above statement
+          render = [] // for rerender above statement
         })
       }
     }

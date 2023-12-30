@@ -14,6 +14,7 @@ import type {
   QueryObserverResult,
   ThrowOnError,
 } from '@tanstack/query-core'
+import type { FnOrVal } from '.'
 
 // This defines the `CreateQueryOptions` that are accepted in `QueriesOptions` & `GetOptions`.
 // `placeholderData` function does not have a parameter
@@ -202,7 +203,7 @@ export function createQueries<
     queries,
     ...options
   }: {
-    queries: [...QueriesOptions<T>]
+    queries: FnOrVal<[...QueriesOptions<T>]>
     combine?: (result: QueriesResults<T>) => TCombinedResult
   },
   queryClient?: QueryClient,
@@ -210,10 +211,12 @@ export function createQueries<
   const client = useQueryClient(queryClient)
   const isRestoring = useIsRestoring()
 
-  const queriesStore = $derived(queries)
+  const queriesStore = $derived(
+    typeof queries != 'function' ? () => queries : queries,
+  )
 
   const defaultedQueriesStore = createMemo(() => {
-    return queries.map((opts) => {
+    return queriesStore().map((opts) => {
       const defaultedOptions = client.defaultQueryOptions(opts)
       // Make sure the results are already in fetching state before subscribing or updating options
       defaultedOptions._optimisticResults = isRestoring
@@ -283,7 +286,6 @@ export function createQueries<
 
   const subscribeToObserver = () =>
     observer.subscribe((result_) => {
-      debugger
       taskQueue.push(() => {
         flushSync(() => {
           const dataResources_ = dataResources
@@ -330,25 +332,29 @@ export function createQueries<
       return new Proxy(s, handler(index))
     }),
   )
-  let proxifiedState = $state(getProxies())
+  const proxifiedState = $state(getProxies())
 
-  $effect(() => {
+  /*  $effect(() => {
     console.log(
       'result updated',
       result,
       JSON.stringify(result),
       JSON.stringify(proxifiedState),
     )
-  })
+  }) 
   $effect(() => {
     console.log(
       'proxifiedState',
 
       JSON.stringify(proxifiedState),
     )
-  })
+  })*/
   $effect.pre(() => {
-    Object.assign(proxifiedState, getProxies())
+    if (getProxies) {
+      untrack(() => {
+        Object.assign(proxifiedState, getProxies())
+      })
+    }
   })
   return proxifiedState as TCombinedResult
 }
