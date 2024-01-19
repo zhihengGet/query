@@ -1,4 +1,4 @@
-import { onDestroy } from 'svelte'
+import { onDestroy, unstate } from 'svelte'
 
 import { MutationObserver, notifyManager } from '@tanstack/query-core'
 import { useQueryClient } from './useQueryClient'
@@ -38,12 +38,17 @@ export function createMutation<
 
   const un = observer.subscribe((val) => {
     notifyManager.batchCalls(() => {
-      result = val
+      //console.log('result updated', val)
+      Object.assign(result, val)
+
+      //result = val
     })()
   })
-  onDestroy(un)
+  onDestroy(() => {
+    un()
+  })
 
-  const data = $state({
+  /* let data = $derived({
     ...result,
     mutate,
     mutateAsync: result.mutate,
@@ -54,8 +59,19 @@ export function createMutation<
       mutate,
       mutateAsync: result.mutate,
     })
+  }) */
+
+  return new Proxy(result, {
+    get: (_, prop) => {
+      const r = {
+        ...result,
+        mutate,
+        mutateAsync: result.mutate,
+      }
+      if (prop == 'value') return r
+      return r[prop]
+    },
   })
-  return data
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

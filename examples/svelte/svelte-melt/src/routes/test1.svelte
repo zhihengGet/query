@@ -36,10 +36,12 @@
 
 	const data = createQuery({
 		queryKey: ['1'],
-		queryFn: () => ['12321']
+		queryFn: () => fetch('https://pokeapi.co/api/v2/pokemon/ditto?1'),
+		refetchOnMount: false
 	});
 </script>
 
+checking if query is cached , should no fetch again on Remount
 <button onclick={stateSample.updateHost}>op {JSON.stringify(stateSample)} </button>
 
 <hr />

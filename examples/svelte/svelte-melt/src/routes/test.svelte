@@ -40,19 +40,25 @@
 
 	const data = createQuery({
 		queryKey: ['hi', createQueryKeyDeepArr],
-		queryFn: () => ['12321', createQueryKeyDeepArr]
+		queryFn: async () => {
+			const data = await fetch('https://pokeapi.co/api/v2/pokemon/ditto');
+			const b = (await data.json()) as typeof sample;
+			return new Date().getTime();
+		}
 	});
-	/* 	// should deduplicate
+	// should deduplicate
 	const data1 = createQuery({
 		queryKey: ['hi', createQueryKeyDeepArr],
-		queryFn: () => ['12321', createQueryKeyDeepArr]
-	}); */
+		queryFn: () => fetch('https://pokeapi.co/api/v2/pokemon/ditto')
+	});
 
 	function updateCreateQueryKey() {
 		createQueryKey = 'a new string';
 		createQueryKeyDeep.push(Date.now());
+		createQueryKeyDeepArr.test.push('a new date');
 	}
 
+	// create queries
 	let keys = $state(['123', '123']);
 	const dat1 = createQueries({
 		queries: [
@@ -83,18 +89,26 @@
 <hr />
 <div>
 	<h1>Create Query</h1>
-	<h2>QueryOptions: Shallow:{createQueryKey}<br /> Deep:{createQueryKeyDeep}</h2>
+	<h4>
+		Cases for different type of query key
+		<br />
+		<ul>
+			<li>String key:{createQueryKey}</li>
+			<li>arr Key{createQueryKeyDeep}</li>
+			<li>Object Key{createQueryKeyDeep}</li>
+		</ul>
+	</h4>
 
 	<!-- 	<button onclick={() => client.invalidateQueries({queryKey:createQuery})}>invalidate</button>
 	<button onclick={() => client.setQueryData(key.queryKey, (old) => ['new data'])}>SetCache</button> -->
-	<button onclick={updateCreateQueryKey}>CHnage Options</button>
+	<button onclick={updateCreateQueryKey}>Update query Options</button>
 	<button>invalidate</button>
 
-	<div>Result: {JSON.stringify(data)}</div>
+	<pre>Result: {JSON.stringify(data, null, 3)}</pre>
 	<hr />
-	<div>Data: {JSON.stringify(data.data)}</div>
+	<pre>Data: {JSON.stringify(data.data)}</pre>
 	<hr />
-	<div>isError: {JSON.stringify(data)}</div>
+	<div>isError: {data.isError}</div>
 	<button
 		onclick={() => {
 			createQueryKeyDeepArr.test.push('what is this');
@@ -128,9 +142,11 @@
 
 {JSON.stringify(dat1)}
 
+<hr />
+<h1>mutation</h1>
 <button onclick={mutate.mutate}>mutation {mutate.status}</button>
-
+<hr />
 {#if show}
 	<Test1 />
 {/if}
-<button>destory</button>
+<button onclick={() => (show = !show)}>Toggle Test1</button>
